@@ -14,6 +14,21 @@ export default function PBITracker({ data, token, save, onToast }) {
 
   const rows = data[SHEET_NAMES.WATCHTOWER] || []
 
+  // Derive column letter for 'Development Status' from sheet header order — never hardcode
+  const devStatusCol = useMemo(() => {
+    if (!rows.length) return 'J'
+    const keys = Object.keys(rows[0])
+    const idx = keys.indexOf('Development Status')
+    if (idx < 0) return 'J'
+    let result = '', n = idx + 1
+    while (n > 0) {
+      const rem = (n - 1) % 26
+      result = String.fromCharCode(65 + rem) + result
+      n = Math.floor((n - 1) / 26)
+    }
+    return result
+  }, [rows])
+
   const filtered = useMemo(() => {
     return rows.filter(r => {
       if (filters.phase && r['Phase'] !== filters.phase) return false
@@ -151,7 +166,7 @@ export default function PBITracker({ data, token, save, onToast }) {
                             onChange={e => {
                               const actualIdx = rows.indexOf(row)
                               if (actualIdx < 0) return
-                              save([{ range: `${SHEET_NAMES.WATCHTOWER}!J${actualIdx + 2}`, values: [[e.target.value]] }])
+                              save([{ range: `${SHEET_NAMES.WATCHTOWER}!${devStatusCol}${actualIdx + 2}`, values: [[e.target.value]] }])
                             }}
                             className="text-xs bg-transparent border-0 outline-none cursor-pointer text-gray-300"
                           >

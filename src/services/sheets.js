@@ -58,7 +58,7 @@ export async function batchWrite(updates, token) {
 // ─── Append row ──────────────────────────────────────────────────────────────
 export async function appendRow(sheetName, rowValues, token) {
   const range = encodeURIComponent(`${sheetName}!A1`)
-  const url = `${BASE}/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&access_token=${token}`
+  const url = `${BASE}/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=OVERWRITE&access_token=${token}`
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

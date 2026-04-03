@@ -8,6 +8,17 @@ import { Plus, AlertTriangle, Clock } from 'lucide-react'
 const COLUMNS = ['Open', 'In Progress', 'Stuck', 'Completed']
 const PRIORITIES = ['Critical', 'High', 'Low']
 
+function colLetter(idx) {
+  if (idx < 0) return ''
+  let result = '', n = idx + 1
+  while (n > 0) {
+    const rem = (n - 1) % 26
+    result = String.fromCharCode(65 + rem) + result
+    n = Math.floor((n - 1) / 26)
+  }
+  return result
+}
+
 function CAWCard({ item, onClick, isDragging }) {
   const days = daysFrom(item['ETA for Go-live'])
   const overdue = isOverdue(item['ETA for Go-live'])
@@ -83,6 +94,14 @@ export default function CAWBoard({ data, token, save }) {
 
   const rows = useMemo(() => (data[SHEET_NAMES.CAW] || []).map((r, i) => ({ ...r, _idx: i })), [data])
 
+  // Derive column letter for 'Status' from sheet header order — never hardcode
+  const statusCol = useMemo(() => {
+    if (!rows.length) return 'G'
+    const keys = Object.keys(rows[0]).filter(k => k !== '_idx')
+    const idx = keys.indexOf('Status')
+    return idx >= 0 ? colLetter(idx) : 'G'
+  }, [rows])
+
   const filtered = useMemo(() =>
     rows.filter(r => {
       if (filterTeam && r['EE Team'] !== filterTeam) return false
@@ -111,7 +130,7 @@ export default function CAWBoard({ data, token, save }) {
     if (!over || !token) return
     const item = rows.find(r => String(r._idx) === active.id)
     if (!item || item['Status'] === over.id) return
-    save([{ range: `${SHEET_NAMES.CAW}!G${item._idx + 2}`, values: [[over.id]] }])
+    save([{ range: `${SHEET_NAMES.CAW}!${statusCol}${item._idx + 2}`, values: [[over.id]] }])
   }
 
   const activeItem = activeId ? rows.find(r => String(r._idx) === activeId) : null
