@@ -45,6 +45,7 @@ export async function writeCell(sheetName, row, col, value, token) {
 // ─── Batch update multiple ranges ─────────────────────────────────────────────
 export async function batchWrite(updates, token) {
   // updates: [{ range: 'Sheet!A1', values: [[val]] }, ...]
+  console.debug('[batchWrite]', JSON.stringify(updates))
   const url = `${BASE}/${SHEET_ID}/values:batchUpdate?access_token=${token}`
   const res = await fetch(url, {
     method: 'POST',
@@ -72,9 +73,18 @@ export async function appendRow(sheetName, rowValues, token) {
 function rowsToObjects(rows) {
   if (!rows.length) return []
   const headers = rows[0].map(h => h?.toString().trim())
+  // Use a unique sentinel key for blank/duplicate headers so that Object.keys()
+  // always returns one entry per column — preserving correct column positions.
+  const seen = {}
+  const keys = headers.map((h, i) => {
+    if (!h) return `_col_${i}`
+    if (seen[h] !== undefined) return `${h}_${i}`
+    seen[h] = i
+    return h
+  })
   return rows.slice(1).map(row => {
     const obj = {}
-    headers.forEach((h, i) => { obj[h] = row[i] ?? '' })
+    keys.forEach((k, i) => { obj[k] = row[i] ?? '' })
     return obj
   })
 }
