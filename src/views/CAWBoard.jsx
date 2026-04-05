@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import StatusChip from '../components/ui/StatusChip.jsx'
 import Modal from '../components/ui/Modal.jsx'
-import { formatDate, isOverdue, daysFrom, SHEET_NAMES, dateToSerial } from '../config.js'
+import { isOverdue, daysFrom, SHEET_NAMES, dateToSerial, serialToDate } from '../config.js'
 import { Plus, AlertTriangle, Clock } from 'lucide-react'
 
 const COLUMNS = ['Open', 'In Progress', 'Stuck', 'Completed']
@@ -148,6 +148,13 @@ export default function CAWBoard({ data, token, save, append, onToast }) {
     setNewItem({ Priority: 'High', Status: 'Open' })
   }
 
+  // Convert DD/MM/YYYY → YYYY-MM-DD for <input type="date">
+  const etaToInput = (val) => {
+    const d = serialToDate(val)
+    if (!d) return ''
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
   const openDetail = (item) => {
     setSelectedItem(item)
     setEditValues({
@@ -159,6 +166,7 @@ export default function CAWBoard({ data, token, save, append, onToast }) {
       'Comments':             item['Comments'] || '',
       'Priority':             item['Priority'] || 'High',
       'Status':               item['Status'] || 'Open',
+      'ETA for Go-live':      etaToInput(item['ETA for Go-live']),
     })
   }
 
@@ -173,7 +181,10 @@ export default function CAWBoard({ data, token, save, append, onToast }) {
     ]
     fields.forEach(f => {
       if (colMap[f] && editValues[f] !== undefined) {
-        updates.push({ range: `${SHEET_NAMES.CAW}!${colMap[f]}${sheetRow}`, values: [[editValues[f]]] })
+        let value = editValues[f]
+        // ETA stored as DD/MM/YYYY in sheet; editValues has YYYY-MM-DD from date input
+        if (f === 'ETA for Go-live' && value) value = dateToSerial(new Date(value))
+        updates.push({ range: `${SHEET_NAMES.CAW}!${colMap[f]}${sheetRow}`, values: [[value]] })
       }
     })
     if (updates.length) save(updates)
@@ -269,8 +280,16 @@ export default function CAWBoard({ data, token, save, append, onToast }) {
               </div>
             </div>
           </div>
+          <div className="mt-3">
+            <label className="text-xs text-gray-500 font-mono mb-1 block">ETA for Go-live</label>
+            <input
+              type="date"
+              value={editValues['ETA for Go-live'] ?? ''}
+              onChange={e => setEditValues(p => ({ ...p, 'ETA for Go-live': e.target.value }))}
+              disabled={!token}
+              className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-surface-600 border border-gray-300 dark:border-surface-400 rounded-lg text-gray-800 dark:text-gray-200 outline-none focus:border-brand/50 disabled:opacity-60 cursor-pointer" />
+          </div>
           <div className="flex items-center gap-2 mt-5">
-            <p className="text-xs text-gray-500 font-mono">ETA: {formatDate(selectedItem['ETA for Go-live'])}</p>
             <div className="ml-auto flex gap-2">
               <button onClick={() => setSelectedItem(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 cursor-pointer">Close</button>
               {token && <button onClick={handleDetailSave} className="px-4 py-2 text-sm font-display font-semibold bg-brand text-white rounded-lg hover:bg-brand-dark cursor-pointer">Save</button>}

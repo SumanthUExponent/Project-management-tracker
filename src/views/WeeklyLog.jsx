@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Modal from '../components/ui/Modal.jsx'
 import StatusChip from '../components/ui/StatusChip.jsx'
 import { formatDate, SHEET_NAMES } from '../config.js'
@@ -260,7 +260,11 @@ export default function WeeklyLog({ data, token, save, append, onToast }) {
     return wks
   }, [allRows])
 
-  const [selectedWeek, setSelectedWeek] = useState(() => weeks[weeks.length - 1] || '')
+  const [selectedWeek, setSelectedWeek] = useState('')
+  // Sync to latest week whenever weeks list changes (data loads async)
+  useEffect(() => {
+    if (weeks.length) setSelectedWeek(prev => prev && weeks.includes(prev) ? prev : weeks[weeks.length - 1])
+  }, [weeks])
   const currentWeek = weeks[weeks.length - 1]
   const isCurrentWeek = selectedWeek === currentWeek
   const weekIdx = weeks.indexOf(selectedWeek)

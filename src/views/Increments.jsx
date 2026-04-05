@@ -69,11 +69,12 @@ export default function Increments({ data, token, save, append, onToast }) {
     const vals = editValues[row._idx] || {}
     const sheetRow = row._idx + 2
     const updates = []
+    // Spec column order: A=Module, B=Doctype, C=Start Date, D=End Date, E=Type, F=Comments
     if (vals['Module'] !== undefined)     updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!A${sheetRow}`, values: [[vals['Module']]] })
     if (vals['Doctype'] !== undefined)    updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!B${sheetRow}`, values: [[vals['Doctype']]] })
-    if (vals['Type'] !== undefined)       updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!C${sheetRow}`, values: [[vals['Type']]] })
-    if (vals['Start Date'] !== undefined) updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!D${sheetRow}`, values: [[fromInputDate(vals['Start Date'])]] })
-    if (vals['End Date'] !== undefined)   updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!E${sheetRow}`, values: [[fromInputDate(vals['End Date'])]] })
+    if (vals['Start Date'] !== undefined) updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!C${sheetRow}`, values: [[fromInputDate(vals['Start Date'])]] })
+    if (vals['End Date'] !== undefined)   updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!D${sheetRow}`, values: [[fromInputDate(vals['End Date'])]] })
+    if (vals['Type'] !== undefined)       updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!E${sheetRow}`, values: [[vals['Type']]] })
     if (vals['Comments'] !== undefined)   updates.push({ range: `${SHEET_NAMES.INCREMENTAL}!F${sheetRow}`, values: [[vals['Comments']]] })
     if (updates.length) save(updates)
     onToast?.('Increment saved', 'success')
@@ -83,12 +84,13 @@ export default function Increments({ data, token, save, append, onToast }) {
   // STUB-5: Add new increment
   const handleAdd = async () => {
     if (!newItem['Module']?.trim()) { onToast?.('Module is required', 'error'); return }
+    // Spec column order: A=Module, B=Doctype, C=Start Date, D=End Date, E=Type, F=Comments
     await append(SHEET_NAMES.INCREMENTAL, [[
       newItem['Module'] || '',
       newItem['Doctype'] || '',
-      newItem['Type'] || 'Feature',
       newItem['Start Date'] ? fromInputDate(newItem['Start Date']) : '',
       newItem['End Date'] ? fromInputDate(newItem['End Date']) : '',
+      newItem['Type'] || 'Feature',
       newItem['Comments'] || '',
     ]])
     onToast?.('Increment added', 'success')

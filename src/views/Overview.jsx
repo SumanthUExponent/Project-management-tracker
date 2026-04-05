@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 import KpiCard from '../components/ui/KpiCard.jsx'
 import StatusChip from '../components/ui/StatusChip.jsx'
-import { isOverdue, daysFrom } from '../config.js'
+import { isOverdue, daysFrom, SHEET_NAMES } from '../config.js'
 import { AlertTriangle, TrendingUp, Clock } from 'lucide-react'
 
 export default function Overview({ data, onNavigate }) {
-  const watchtower = data['Watchtower Roadmap'] || []
-  const caw        = data['CAW'] || []
-  const weekly     = data['Weekly Update'] || []
-  const moduleGantt = data['Module Gantt Data'] || []
+  const watchtower  = data[SHEET_NAMES.WATCHTOWER]    || []
+  const caw         = data[SHEET_NAMES.CAW]            || []
+  const weekly      = data[SHEET_NAMES.WEEKLY_UPDATE]  || []
+  const moduleGantt = data[SHEET_NAMES.MODULE_GANTT]   || []
 
   const stats = useMemo(() => {
     const activeModules = new Set(moduleGantt.map(r => r['Module Name']).filter(Boolean)).size

@@ -44,7 +44,9 @@ const STAGE_COLORS = {
   'Increment - Bug':         { bg: '#ef4444', text: '#fff' },
   'Increment - Data Import': { bg: '#eab308', text: '#000' },
 }
-const STAGES = Object.keys(STAGE_COLORS)
+// Valid values for Watchtower Roadmap col I (Stage - L3 Lifecycle)
+// 'Go-Live' and 'Increment-*' are Phase Gantt visualization labels only — not Watchtower values
+const WATCHTOWER_STAGES = ['Scope Discovery', 'Development', 'UAT', 'Migration', 'Sustenance']
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function parseDateStr(str) {
@@ -290,7 +292,7 @@ function DetailPanel({ task, localEdits, onClose, onSave, token, vsMap, saving }
               onChange={e => setEditStage(e.target.value)}
               className="w-full text-xs font-mono bg-white dark:bg-surface-700 border border-gray-200 dark:border-surface-500 rounded px-2 py-1.5 text-gray-700 dark:text-gray-300 cursor-pointer"
             >
-              {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+              {WATCHTOWER_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           ) : (
             <StatusChip status={task.stage} />
