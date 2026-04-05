@@ -16,6 +16,23 @@ import { Filter, GripVertical, Target, X, Save } from 'lucide-react'
 const ROW_H   = 36
 const LABEL_W = 200
 
+// Watchtower column names for each Gantt stage's START date
+const STAGE_START_FIELD = {
+  'Scope Discovery': 'Module Scope Discovery Start',
+  'Development':     'Module Development Start',
+  'UAT':             'Module UAT Start',
+  'Migration':       'Migration Start Date',
+  'Go-Live':         'Module Go Live Date',
+}
+// Watchtower column names for each Gantt stage's END date (= next stage start)
+const STAGE_END_FIELD = {
+  'Scope Discovery': 'Module Development Start',
+  'Development':     'Module UAT Start',
+  'UAT':             'Migration Start Date',
+  'Migration':       'Module Go Live Date',
+  'Go-Live':         null,
+}
+
 const STAGE_COLORS = {
   'Scope Discovery':         { bg: '#64748b', text: '#fff' },
   'Development':             { bg: '#3b82f6', text: '#fff' },
@@ -371,8 +388,9 @@ export default function GanttView({ data, token, save, onToast }) {
   const timelineBodyRef   = useRef(null)  // inner content div
 
   // ─── Data ──────────────────────────────────────────────────────────────────
-  const phaseGantt = data[SHEET_NAMES.PHASE_GANTT] || []
-  const vsInput    = data[SHEET_NAMES.VS_INPUT]    || []
+  const phaseGantt     = data[SHEET_NAMES.PHASE_GANTT] || []
+  const watchtowerRows = data[SHEET_NAMES.WATCHTOWER]  || []
+  const vsInput        = data[SHEET_NAMES.VS_INPUT]    || []
 
   const vsMap = useMemo(() => {
     const m = {}
@@ -380,14 +398,25 @@ export default function GanttView({ data, token, save, onToast }) {
     return m
   }, [vsInput])
 
-  // Determine column letters from sheet header order
-  const colMap = useMemo(() => {
-    if (!phaseGantt.length) return {}
-    const keys = Object.keys(phaseGantt[0])
+  // Column map for Watchtower Roadmap — used for all writes
+  const watchtowerColMap = useMemo(() => {
+    if (!watchtowerRows.length) return {}
     const m = {}
-    keys.forEach((k, i) => { m[k] = colLetter(i) })
+    Object.keys(watchtowerRows[0]).forEach((k, i) => { m[k] = colLetter(i) })
     return m
-  }, [phaseGantt])
+  }, [watchtowerRows])
+
+  // Watchtower rows grouped by module (with original index for range writes)
+  const watchtowerByModule = useMemo(() => {
+    const m = {}
+    watchtowerRows.forEach((r, i) => {
+      const mod = r['Module']
+      if (!mod) return
+      if (!m[mod]) m[mod] = []
+      m[mod].push({ ...r, _idx: i })
+    })
+    return m
+  }, [watchtowerRows])
 
   const tasks = useMemo(() =>
     phaseGantt
@@ -567,23 +596,27 @@ export default function GanttView({ data, token, save, onToast }) {
 
       if (prev) {
         const { task, type } = d
-        const sheetRow = task._sheetIdx + 2
-        const updates  = []
-        const sc = colMap['Start Date']
-        const ec = colMap['End Date']
+        const updates = []
+        const modRows = watchtowerByModule[task.module] || []
 
-        if (type === 'move' && sc) {
-          updates.push({
-            range:  `${SHEET_NAMES.PHASE_GANTT}!${sc}${sheetRow}`,
-            values: [[dateToStr(prev.start)]],
-          })
-        }
-        if (ec) {
-          updates.push({
-            range:  `${SHEET_NAMES.PHASE_GANTT}!${ec}${sheetRow}`,
-            values: [[dateToStr(prev.end)]],
-          })
-        }
+        const startField = STAGE_START_FIELD[task.stage]
+        const endField   = STAGE_END_FIELD[task.stage]
+
+        modRows.forEach(r => {
+          const sheetRow = r._idx + 2
+          if (type === 'move' && startField && watchtowerColMap[startField]) {
+            updates.push({
+              range:  `${SHEET_NAMES.WATCHTOWER}!${watchtowerColMap[startField]}${sheetRow}`,
+              values: [[dateToStr(prev.start)]],
+            })
+          }
+          if (endField && watchtowerColMap[endField]) {
+            updates.push({
+              range:  `${SHEET_NAMES.WATCHTOWER}!${watchtowerColMap[endField]}${sheetRow}`,
+              values: [[dateToStr(prev.end)]],
+            })
+          }
+        })
 
         setLocalEdits(le => ({
           ...le,
@@ -607,33 +640,45 @@ export default function GanttView({ data, token, save, onToast }) {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup',   onUp)
     }
-  }, [totalMs, colMap, save, onToast])
+  }, [totalMs, watchtowerColMap, watchtowerByModule, save, onToast])
 
   // ─── Panel save ────────────────────────────────────────────────────────────
   const handlePanelSave = useCallback(async (task, { start, end, stage }) => {
     if (!token) return
     setSaving(true)
-    const sheetRow = task._sheetIdx + 2
     const updates  = []
+    const modRows  = watchtowerByModule[task.module] || []
+    const startField = STAGE_START_FIELD[stage]
+    const endField   = STAGE_END_FIELD[stage]
+    const stageCol   = watchtowerColMap['Stage - L3 Lifecycle']
 
-    if (colMap['Start Date']) updates.push({
-      range:  `${SHEET_NAMES.PHASE_GANTT}!${colMap['Start Date']}${sheetRow}`,
-      values: [[dateToStr(start)]],
-    })
-    if (colMap['End Date']) updates.push({
-      range:  `${SHEET_NAMES.PHASE_GANTT}!${colMap['End Date']}${sheetRow}`,
-      values: [[dateToStr(end)]],
-    })
-    if (colMap['Module Stage']) updates.push({
-      range:  `${SHEET_NAMES.PHASE_GANTT}!${colMap['Module Stage']}${sheetRow}`,
-      values: [[stage]],
+    modRows.forEach(r => {
+      const sheetRow = r._idx + 2
+      if (startField && watchtowerColMap[startField]) {
+        updates.push({
+          range:  `${SHEET_NAMES.WATCHTOWER}!${watchtowerColMap[startField]}${sheetRow}`,
+          values: [[dateToStr(start)]],
+        })
+      }
+      if (endField && watchtowerColMap[endField]) {
+        updates.push({
+          range:  `${SHEET_NAMES.WATCHTOWER}!${watchtowerColMap[endField]}${sheetRow}`,
+          values: [[dateToStr(end)]],
+        })
+      }
+      if (stageCol) {
+        updates.push({
+          range:  `${SHEET_NAMES.WATCHTOWER}!${stageCol}${sheetRow}`,
+          values: [[stage]],
+        })
+      }
     })
 
     setLocalEdits(le => ({ ...le, [task.id]: { start, end, stage } }))
-    await save(updates)
+    if (updates.length) await save(updates)
     setSaving(false)
     onToast?.('Changes saved', 'success')
-  }, [token, colMap, save, onToast])
+  }, [token, watchtowerColMap, watchtowerByModule, save, onToast])
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
