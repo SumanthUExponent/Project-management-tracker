@@ -28,13 +28,14 @@ export default function Overview({ data, onNavigate }) {
     const allMods     = new Set(weekly.map(r => r['Module']).filter(Boolean))
     const notUpdated  = [...allMods].filter(m => !updatedMods.has(m) && m).length
 
+    // Spec: % complete = rows where Stage-L3 Lifecycle = "Sustenance" / total
     const phases = {}
     watchtower.forEach(r => {
       const ph = r['Phase']
       if (!ph) return
       if (!phases[ph]) phases[ph] = { total: 0, released: 0 }
       phases[ph].total++
-      if (r['Development Status'] === 'Released to Prod Site') phases[ph].released++
+      if (r['Stage - L3 Lifecycle'] === 'Sustenance') phases[ph].released++
     })
 
     return { activeModules, releasedToProd, stuckCAW, overdueCAW, notUpdated, phases }

@@ -57,26 +57,33 @@ export default function PBITracker({ data, token, save, append, onToast }) {
   const isCollapsed = (mod) => collapsed[mod] !== false  // undefined → collapsed (true)
   const toggleCollapse = (mod) => setCollapsed(prev => ({ ...prev, [mod]: !isCollapsed(mod) }))
 
+  // Spec (Watchtower col F): % complete = rows where Stage-L3 Lifecycle = "Sustenance" / total
   const modulePct = (modRows) => {
-    const released = modRows.filter(r => r['Development Status'] === 'Released to Prod Site').length
-    return modRows.length ? Math.round((released / modRows.length) * 100) : 0
+    const sustained = modRows.filter(r => r['Stage - L3 Lifecycle'] === 'Sustenance').length
+    return modRows.length ? Math.round((sustained / modRows.length) * 100) : 0
   }
 
   // STUB-3: Add PBI — write to Watchtower sheet
+  // Spec column order (17 cols): A=Module, B=PBIID, C=Phase, D=Site-L0, E=App-L1,
+  // F=%L2Complete (formula — leave blank), G=Doctype-L3, H=Function,
+  // I=Stage-L3 Lifecycle, J=Development Status, K=Priority, L-P=Dates, Q=Notes
   const handleAddPBI = () => {
     if (!newPBI['Module']) { onToast?.('Module is required', 'error'); return }
     const pbiId = `PBI-${String(rows.length + 1).padStart(4, '0')}`
     append(SHEET_NAMES.WATCHTOWER, [[
-      pbiId,
-      newPBI['Module'] || '',
-      newPBI['Site - L0'] || '',
-      newPBI['App - L1'] || '',
-      newPBI['Function'] || '',
-      newPBI['Doctype - L3'] || '',
-      newPBI['Phase'] || '',
-      '',
-      'Ongoing',
-      '0',
+      newPBI['Module'] || '',          // A: Module
+      pbiId,                           // B: PBIID
+      newPBI['Phase'] || '',           // C: Phase
+      newPBI['Site - L0'] || '',       // D: Site - L0
+      newPBI['App - L1'] || '',        // E: App - L1
+      '',                              // F: % L2 Complete (formula col — leave blank)
+      newPBI['Doctype - L3'] || '',    // G: Doctype - L3
+      newPBI['Function'] || '',        // H: Function
+      'Scope Discovery',               // I: Stage - L3 Lifecycle (new items start here)
+      'Ongoing',                       // J: Development Status
+      '',                              // K: Priority
+      '', '', '', '', '',              // L-P: Dates (blank — user fills in sheet)
+      '',                              // Q: Notes
     ]])
     onToast?.('PBI added', 'success')
     setShowModal(false)

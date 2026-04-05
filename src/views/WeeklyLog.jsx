@@ -134,9 +134,10 @@ function EditModal({ editRow, allRows, selectedWeek, onClose, save, onToast }) {
     const rowIdx = allRows.indexOf(editRow)
     if (rowIdx < 0) { onToast('Row not found', 'error'); return }
     const sheetRow = rowIdx + 2  // +1 for header, +1 for 1-indexed
+    // Spec columns: C=Weekly Status (milestones text), D=Update Due On, E=Status
     save([
-      { range: `${SHEET_NAMES.WEEKLY_UPDATE}!C${sheetRow}`, values: [[editStatus]] },
-      { range: `${SHEET_NAMES.WEEKLY_UPDATE}!D${sheetRow}`, values: [[serializeMilestones(editMilestones)]] },
+      { range: `${SHEET_NAMES.WEEKLY_UPDATE}!C${sheetRow}`, values: [[serializeMilestones(editMilestones)]] },
+      { range: `${SHEET_NAMES.WEEKLY_UPDATE}!E${sheetRow}`, values: [[editStatus]] },
     ])
     onToast('Update saved', 'success')
     onClose()
@@ -211,7 +212,8 @@ function AddUpdateModal({ currentWeek, onClose, append, onToast }) {
 
   const handleAdd = async () => {
     if (!module.trim()) { onToast('Module name required', 'error'); return }
-    await append(SHEET_NAMES.WEEKLY_UPDATE, [[currentWeek, module.trim(), status, '', '']])
+    // Spec: A=Week Number, B=Module, C=Weekly Status (milestones), D=Update Due On, E=Status
+    await append(SHEET_NAMES.WEEKLY_UPDATE, [[currentWeek, module.trim(), '', '', status]])
     onToast('Update added', 'success')
     onClose()
   }
@@ -280,12 +282,14 @@ export default function WeeklyLog({ data, token, save, append, onToast }) {
   // STUB-1: Start New Week — clone non-Done rows with incremented week number
   const handleStartNewWeek = async () => {
     if (!token) return onToast('Sign in to start a new week', 'error')
+    // Spec: Week Number = "Wk-" + WEEKNUM(date) — no zero padding (e.g. Wk-4 not Wk-04)
     const match = (currentWeek || '').match(/Wk-(\d+)/i) || (currentWeek || '').match(/W(\d+)/i)
     const nextNum = match ? Number(match[1]) + 1 : 1
-    const nextWeek = `Wk-${String(nextNum).padStart(2, '0')}`
+    const nextWeek = `Wk-${nextNum}`
     const toCarry = allRows.filter(r => r['Week Number'] === currentWeek && r['Status'] !== 'Done')
     if (toCarry.length === 0) { onToast('No active modules to carry forward', 'error'); return }
-    const newRows = toCarry.map(r => [nextWeek, r['Module'], 'Ongoing', r['Weekly Status of Module'] || '', ''])
+    // Spec: A=Week Number, B=Module, C=Weekly Status (milestones), D=Update Due On, E=Status
+    const newRows = toCarry.map(r => [nextWeek, r['Module'], r['Weekly Status of Module'] || '', '', 'Ongoing'])
     await append(SHEET_NAMES.WEEKLY_UPDATE, newRows)
     onToast(`${nextWeek} started — ${toCarry.length} modules carried forward`, 'success')
   }

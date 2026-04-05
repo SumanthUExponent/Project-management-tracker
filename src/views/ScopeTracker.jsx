@@ -81,15 +81,20 @@ export default function ScopeTracker({ data, token, save, append, onToast }) {
 
   const handleAddSession = async () => {
     if (!newSession['Module']?.trim()) { onToast?.('Module is required', 'error'); return }
+    // Spec column order: A=Module, B=Priority, C=Owner, D=Status, E=Start date,
+    // F=End date, G=Session Duration, H=Description of findings,
+    // I=Discussion points for next meeting, J=Deliverable
     await append(SHEET_NAMES.SCOPE_TRACKER, [[
-      newSession['Module'] || '',
-      newSession['Owner'] || '',
-      newSession['Priority'] || '',
-      newSession['Status'] || 'Open',
-      newSession['Session Duration'] || '',
-      newSession['Deliverable'] || '',
-      newSession['Description of findings'] || '',
-      newSession['Discussion points for next meeting'] || '',
+      newSession['Module'] || '',                              // A
+      newSession['Priority'] || '',                            // B
+      newSession['Owner'] || '',                               // C
+      newSession['Status'] || 'Open',                          // D
+      newSession['Start date'] || '',                          // E
+      newSession['End date'] || '',                            // F
+      newSession['Session Duration'] || '',                    // G
+      newSession['Description of findings'] || '',             // H
+      newSession['Discussion points for next meeting'] || '',  // I
+      newSession['Deliverable'] || '',                         // J
     ]])
     onToast?.('Session added', 'success')
     setShowAdd(false)
@@ -235,9 +240,11 @@ export default function ScopeTracker({ data, token, save, append, onToast }) {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Module *', key: 'Module' },
-              { label: 'Owner', key: 'Owner' },
               { label: 'Priority', key: 'Priority' },
+              { label: 'Owner', key: 'Owner' },
               { label: 'Status', key: 'Status' },
+              { label: 'Start Date', key: 'Start date' },
+              { label: 'End Date', key: 'End date' },
               { label: 'Session Duration', key: 'Session Duration' },
               { label: 'Deliverable', key: 'Deliverable' },
             ].map(({ label, key }) => (

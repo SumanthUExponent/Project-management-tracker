@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import StatusChip from '../components/ui/StatusChip.jsx'
 import Modal from '../components/ui/Modal.jsx'
-import { formatDate, isOverdue, daysFrom, SHEET_NAMES } from '../config.js'
+import { formatDate, isOverdue, daysFrom, SHEET_NAMES, dateToSerial } from '../config.js'
 import { Plus, AlertTriangle, Clock } from 'lucide-react'
 
 const COLUMNS = ['Open', 'In Progress', 'Stuck', 'Completed']
@@ -129,14 +129,19 @@ export default function CAWBoard({ data, token, save, append, onToast }) {
   // STUB-4: Add New Item
   const handleAddItem = async () => {
     if (!newItem['Current Area of Work']?.trim()) { onToast?.('Work item description required', 'error'); return }
+    // Spec column order: A=Current Area of Work, B=Related Module, C=EE Team, D=EE SPOC,
+    // E=League Member, F=Priority, G=Status, H=ETA for Go-live, I=Comments, J=Link
     await append(SHEET_NAMES.CAW, [[
-      newItem['Current Area of Work'] || '',
-      newItem['Related Module'] || '',
-      newItem['EE Team'] || '',
-      newItem['EE SPOC'] || '',
-      newItem['Priority'] || 'High',
-      newItem['ETA for Go-live'] || '',
-      'Open',
+      newItem['Current Area of Work'] || '',  // A
+      newItem['Related Module'] || '',         // B
+      newItem['EE Team'] || '',                // C
+      newItem['EE SPOC'] || '',                // D
+      '',                                      // E: League Member
+      newItem['Priority'] || 'High',           // F
+      'Open',                                  // G: Status
+      newItem['ETA for Go-live'] ? dateToSerial(new Date(newItem['ETA for Go-live'])) : '',  // H: convert YYYY-MM-DD → DD/MM/YYYY
+      '',                                      // I: Comments
+      '',                                      // J: Link
     ]])
     onToast?.('Item added', 'success')
     setShowAdd(false)
